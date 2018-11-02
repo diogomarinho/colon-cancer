@@ -3,19 +3,22 @@ library(ggplot2)
 library(sva)
 library(IlluminaHumanMethylationEPICmanifest)
 library(IlluminaHumanMethylationEPICanno.ilm10b2.hg19)
-#OBS exlude cases RET2, RET14 e RET23
-# Age estimation needs to be performed for controls 
-# As well gender of the patients
+# . 
+# . OBS exlude cases RET2, RET14 e RET23
+# . Age estimation needs to be performed for controls 
+# . As well gender of the patients
 
-# formatting sample sheet 
+# . formatting sample sheet 
+to_remove <- c('RET2', 'RET14', 'RET23')
 
+# .  
 print('loading basic info')
-sample_sheet <- read.csv('~/colon-cancer/MethylationEPIC_Sample_Sheet_21.02.17.csv', stringsAsFactors=F)
+sample_sheet <- read.csv('~/colon-cancer/MethylationEPIC_Sample_Sheet_2018.csv', stringsAsFactors=F)
 colnames(sample_sheet) <- c('Slide', 'Array', 'Sample_Name', 'Group')
 sample_sheet$Status <- as.numeric(as.factor(sample_sheet$Group))
 sample_sheet$Basename <- paste0('~/colon-cancer/idat/', sample_sheet$Slide, '_',sample_sheet$Array)
 sample_sheet <- sample_sheet[order(sample_sheet$Status), ]
-# . 
+
 # pre-processing
 print('reading methylation data')
 RGset <- read.metharray.exp(targets = sample_sheet)
@@ -86,7 +89,7 @@ pvalues <- apply(m_values_patients, 1, function(x) {
    return(pval)
 })
 cpgs_df <- data.frame(chr=annotation$chr, pos=annotation$pos, strand=annotation$strand, name=annotation$Name, P=pvalues)
-write.csv(cpgs_df, '~/colon-cancer/processed_data/lm_pvalues.csv', quote=F, row.names=F)
+write.csv(cpgs_df, '~/colon-cancer/processed_data/lm_pvalues.csv', quote=F, row.names=T)
 
 
 #

@@ -4,12 +4,17 @@ library(ggplot2)
 # . pvalues from anova analysis using the mode methylation = treatment1 + treatment2 + gender + surrogatevariables1..7
 # since age is not available for the control samples it is not used as covariate
 # . loading data 
-pvalues <- read.csv('~/colon-cancer/processed_data/dmp_pvalues.csv', row.names=1)
+pvalues <- read.csv('~/colon-cancer/processed_data/anova_pvalues.csv', row.names=1)
 m_values <- read.csv('~/colon-cancer/processed_data/m_values.csv', row.names=1)
-phenotype <- read.csv('~/colon-cancer/MethylationEPIC_Sample_Sheet_21.02.17.csv', stringsAsFactors = F)
+phenotype <- read.csv('~/colon-cancer/MethylationEPIC_Sample_Sheet_2018.csv', stringsAsFactors = F)
 registry <- read.csv('~/colon-cancer/registry.csv', stringsAsFactors = F)
 row.names(phenotype) <- phenotype$Sample_Name
 row.names(registry) <- registry$Codigo_amostra
+
+# allowed CpGs
+cpgs <- intersect(row.names(m_values), row.names(pvalues))
+pvalues <- pvalues[cpgs, ]
+m_values <- m_values[cpgs, ]
 
 #  gettin only patients for now
 common_samples <- intersect(registry$Codigo_amostra, phenotype$Sample_Name)
@@ -40,11 +45,11 @@ plot <- ggplot(volcano_plot_data, aes(fold_change, -log(P))) + geom_point() +
     geom_hline(yintercept = -log(significant), linetype='dashed', col='red', size = 0.2) + 
     geom_hline(yintercept = -log(suggestive), linetype='dashed', col='blue', size = 0.2)  
 
-png('~/colon-cancer/plots/v_plot.png')
+png('~/colon-cancer/plots/vulcano_plot_pIR_pCR.png')
 print(plot)
 dev.off()
 
-png('~/colon-cancer/plots/qq.png')
+png('~/colon-cancer/plots/qq_pIR_pCR.png')
 print(qq(volcano_plot_data$P))
 dev.off()
 #

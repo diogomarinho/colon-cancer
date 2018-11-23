@@ -71,67 +71,21 @@ snps_to_keep <- intersect(row.names(m_values), names(which(to_keep)))
 m_values <- m_values[snps_to_keep,]
 annotation <- annotation[snps_to_keep, ]
 
-# .
-# creating t-test for control Vs pIR and filtering for bonferroni at alpha=0.05
-pIR <- which(sample_sheet$Group == 'pIR')
-control <- which(sample_sheet$Group == 'Normal')
-# . 
-pvals <- apply(m_values, 1, function(x) {
-    p <- tryCatch({
-        return(t.test(x[control], x[pIR])$p.val)
-    }, error = function(e){
-        return(NA)
-    })
-    return(p)
-})
-
-pvals <- pvals[complete.cases(pvals)]
-pIR_cpgs <- names( pvals[which(pvals <= 0.1/length(pvals) )] )
-
-# creating t-test for control pCR
-pCR <- which(sample_sheet$Group == 'pCR')
-control <- which(sample_sheet$Group == 'Normal')
-# . 
-pvals <- apply(m_values, 1, function(x) {
-    p <- tryCatch({
-        return(t.test(x[control], x[pCR])$p.val)
-    }, error = function(e){
-        return(NA)
-    })
-    return(p)
-})
-# . 
-pvals <- pvals[complete.cases(pvals)]
-pCR_cpgs <- names(pvals[which(pvals <= 0.1/length(pvals))])
-
-# gathering the snps which are differentially methylated in relation to the control samples  
-unique_cpgs <- unique(c(pCR_cpgs, pIR_cpgs))
-
-registry <- read.csv('~/colon-cancer/registry.csv', stringsAsFactors=F)
-row.names(registry) <- registry$Codigo_amostra
-row.names(sample_sheet) <- sample_sheet$Sample_Name
-
-common_samples <- intersect(registry$Codigo_amostra, sample_sheet$Sample_Name)
-m_values_patients <- m_values[unique_cpgs, common_samples]
-phenotype_patients <- sample_sheet[common_samples, ]
-registry <- registry[common_samples, ]
-
-
-# linear model corrected by age and sex
-print('compute logistic regression corrected by age and sex')
-pvalues <- apply(m_values_patients, 1, function(x) {
+print('computing anova')
+pvalues <- apply(m_values, 1, function(x) {
+    data_set <- data.frame(cpg=x, groups=as.factor(sample_sheet$Group))
     pval <- tryCatch({
-        data_set <- data.frame(cpg=x,treatment=as.factor(registry$RESPOSTA), age=registry$Idade_ao_diagnostico, sex=as.factor(registry$Sexo))
-        mod1 <- lm(cpg~., data_set)
+        mod1 <- aov(cpg~groups, data_set)
         mod1_summary <- summary(mod1)
-        return(mod1_summary$coefficients['treatmentpIR',4])
+        return(mod1_summary[[1]][5][1, 1])
     }, error = function(e){
         return (NA)
     })
     return(pval)
 })
+# . 
 annotation_subset <- annotation[names(pvalues), ]
 cpgs_df <- data.frame(chr=annotation_subset$chr, pos=annotation_subset$pos, strand=annotation_subset$strand, name=annotation_subset$Name, P=pvalues)
-write.csv(cpgs_df, '~/colon-cancer/processed_data/lm_pvalues_control_filtered.csv', row.names=T, quote=F)
+write.csv(cpgs_df, '~/colon-cancer/processed_data/anova_pvalues.csv', row.names=T, quote=F)
 # using dmp finder
 

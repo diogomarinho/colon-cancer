@@ -3,17 +3,10 @@ library(ggplot2)
 library(sva)
 library(IlluminaHumanMethylationEPICmanifest)
 library(IlluminaHumanMethylationEPICanno.ilm10b2.hg19)
-# . 
-# . OBS exlude cases RET2, RET14 e RET23
-# . Age estimation needs to be performed for controls 
-# . As well gender of the patients
-
-# . formatting sample sheet 
-to_remove <- c('RET2', 'RET14', 'RET23')
 
 # .  
 print('loading basic info')
-sample_sheet <- read.csv('~/colon-cancer/MethylationEPIC_Sample_Sheet_2018.csv', stringsAsFactors=F)
+sample_sheet <- read.csv('~/colon-cancer/patients_phenotype.csv', stringsAsFactors=F)
 colnames(sample_sheet) <- c('Slide', 'Array', 'Sample_Name', 'Group')
 sample_sheet$Status <- as.numeric(as.factor(sample_sheet$Group))
 sample_sheet$Basename <- paste0('~/colon-cancer/idat/', sample_sheet$Slide, '_',sample_sheet$Array)
@@ -31,6 +24,7 @@ qc <- getQC(MSet)
 png('~/colon-cancer/plots/QC.png')
 print(plotQC(qc))
 dev.off()
+
 #plotting density of methylation values coloured by group
 png('~/colon-cancer/plots/methylation_density_distribution.png')
 densityPlot(MSet, as.factor(sample_sheet$Group))
@@ -42,14 +36,12 @@ norm.data <- preprocessFunnorm(RGset)
 gset <- dropLociWithSnps(norm.data, snps=c("SBE","CpG"), maf=0)
 # annotation <- getAnnotationObject(gset)
 
-
 # Extracting beta values
 beta_values <- getBeta(gset)
 m_values <- getM(gset)
 colnames(m_values) <- sample_sheet$Sample_Name
 colnames(beta_values) <- sample_sheet$Sample_Name
 annotation <- getAnnotation(gset)
-
 
 # including registry so we correct for gender and age among the patients
 registry <- read.csv('~/colon-cancer/registry.csv', stringsAsFactors=F)
@@ -88,9 +80,11 @@ pvalues <- apply(m_values_patients, 1, function(x) {
     })
    return(pval)
 })
+# . 
+# . 
 cpgs_df <- data.frame(chr=annotation$chr, pos=annotation$pos, strand=annotation$strand, name=annotation$Name, P=pvalues)
+# . 
 write.csv(cpgs_df, '~/colon-cancer/processed_data/lm_pvalues.csv', quote=F, row.names=T)
-
 
 #
 #cpgs_df <- data.frame(chr=annotation$chr, pos=annotation$pos, strand=annotation$strand, name=annotation$name, p=pvalues)
